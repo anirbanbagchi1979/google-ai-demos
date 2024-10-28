@@ -233,7 +233,7 @@ def search(image_bytes,text_search):
   print(f"run query: my_index_endpoint")
 
   response = my_index_endpoint.find_neighbors(
-      deployed_index_id=DEPLOYED_INDEX_ID, queries=[embeddings], num_neighbors=10
+      deployed_index_id=DEPLOYED_INDEX_ID, queries=[embeddings.image_embedding], num_neighbors=10
   )
   print(f"Query Response {response}")
 
