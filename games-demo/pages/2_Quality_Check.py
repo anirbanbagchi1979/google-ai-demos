@@ -1,27 +1,8 @@
-import streamlit as st
-import pandas as pd
-import numpy as np
-from itables.streamlit import interactive_table
-import pyarrow
-from streamlit.components.v1 import html
-from streamlit.components.v1.components import MarshallComponentException
-
-from PIL import Image as PILImage
-from streamlit_navigation_bar import st_navbar
-import pages as pg
-
-# from css import *
-from streamlit_extras.stylable_container import stylable_container
-from streamlit_extras.grid import grid
 import time as time
-from google.cloud import storage
-
-import vertexai
+import numpy as np
+import streamlit as st
+from PIL import Image as PILImage
 from vertexai.generative_models import (
-    GenerationConfig,
-    GenerativeModel,
-    HarmBlockThreshold,
-    HarmCategory,
     Part,
     Image,
 )
@@ -41,7 +22,7 @@ def get_storage_url(gcs_uri: str) -> str:
     return "https://storage.googleapis.com/" + gcs_uri.split("gs://")[1]
 
 
-def generate(image) -> None:
+def quality_check(image) -> None:
     with st.spinner("Generating Content..."):
         st.header("Gaming Assets Assistant")
         st.subheader("Generate Automated Asset Quality Report")
@@ -72,15 +53,23 @@ def generate(image) -> None:
             ".",
         ]
 
-        tab1, tab2 = st.tabs(["Response", "Prompt"])
+        tab1, tab2, tab3 = st.tabs(["Response", "Prompt", "Timing"])
         with tab1:
             if content:
                 with st.spinner("Generating Asset Info..."):
+                    start_time = time.time()
                     response = model.generate_image_classification(content)
-                    st.write(response)
+                    end_time = time.time()
+                    formatted_time = f"{end_time-start_time:.3f} seconds"  # f-string for formatted output
+
+                    st.code(response)
+
         with tab2:
             st.write("Prompt used:")
-            st.text(content)
+            st.write(content)
+        with tab3:
+            st.write("Time Taken:")
+            st.write(formatted_time)
 
 with st.sidebar:
     with st.form("Asset Classify"):
@@ -97,6 +86,6 @@ with st.sidebar:
                 )
 
 if image_classify_btn:
-    generate(image)
+    quality_check(image)
 
 st.logo("images/investments.png")

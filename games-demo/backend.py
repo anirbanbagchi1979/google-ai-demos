@@ -1,35 +1,21 @@
 import streamlit as st
-import pandas as pd
-import numpy as np
-from itables.streamlit import interactive_table
-import pyarrow
-from streamlit.components.v1 import html
-from streamlit.components.v1.components import MarshallComponentException
 from PIL import Image
-from streamlit_navigation_bar import st_navbar
-import pages as pg
 import vertexai
 from vertexai.generative_models import (
     GenerationConfig,
     GenerativeModel,
     HarmBlockThreshold,
     HarmCategory,
-    Part,
 )
 from vertexai.vision_models import Image, MultiModalEmbeddingModel
 from vertexai.language_models import TextEmbeddingModel
 
-import os
-from google.cloud import storage
 from vertexai.vision_models import MultiModalEmbeddingModel
 from google.cloud import aiplatform
 import base64
-from google.cloud import storage
 from google.protobuf import struct_pb2
 import typing
-import requests
 import google.cloud.aiplatform as aiplatform
-import google.cloud.aiplatform_v1beta1 as aiplatform_v1beta1
 
 from visionai.python.gapic.visionai import visionai_v1
 from visionai.python.net import channel
@@ -42,75 +28,90 @@ BUCKET_URI = f"gs://{BUCKET}/"
 
 @st.cache_resource
 def get_vertexai_session():
-  print(f"vertexai.init called : {PROJECT_ID}")
-  vertexai.init(project=PROJECT_ID, location=LOCATION)
-  print(f"Using vertexai version: {vertexai.__version__}")
+    """Getting handle to vertex ai"""
+    print(f"vertexai.init called : {PROJECT_ID}")
+    vertexai.init(project=PROJECT_ID, location=LOCATION)
+    print(f"Using vertexai version: {vertexai.__version__}")
 
-get_vertexai_session()  
+
+get_vertexai_session()
+
 
 class EmbeddingResponse(typing.NamedTuple):
-  text_embedding: typing.Sequence[float]
-  image_embedding: typing.Sequence[float]
+    text_embedding: typing.Sequence[float]
+    image_embedding: typing.Sequence[float]
 
 
 class EmbeddingPredictionClient:
-  """Wrapper around Prediction Service Client."""
-  def __init__(self, project : str,
-    location : str = "us-central1",
-    api_regional_endpoint: str = "us-central1-aiplatform.googleapis.com"):
-    client_options = {"api_endpoint": api_regional_endpoint}
-    # Initialize client that will be used to create and send requests.
-    # This client only needs to be created once, and can be reused for multiple requests.
-    self.client = aiplatform.gapic.PredictionServiceClient(client_options=client_options)  
-    self.location = LOCATION
-    self.project = PROJECT_ID
+    """Wrapper around Prediction Service Client."""
 
-  def get_embedding(self, text : str = None, image_bytes : bytes = None):
-    if not text and not image_bytes:
-      raise ValueError('At least one of text or image_bytes must be specified.')
+    def __init__(
+        self,
+        project: str,
+        location: str = "us-central1",
+        api_regional_endpoint: str = "us-central1-aiplatform.googleapis.com",
+    ):
+        client_options = {"api_endpoint": api_regional_endpoint}
+        # Initialize client that will be used to create and send requests.
+        # This client only needs to be created once, and can be reused for multiple requests.
+        self.client = aiplatform.gapic.PredictionServiceClient(
+            client_options=client_options
+        )
+        self.location = LOCATION
+        self.project = PROJECT_ID
 
-    instance = struct_pb2.Struct()
-    if text:
-      instance.fields['text'].string_value = text
+    def get_embedding(self, text: str = None, image_bytes: bytes = None):
+        if not text and not image_bytes:
+            raise ValueError("At least one of text or image_bytes must be specified.")
 
-    if image_bytes:
-      encoded_content = base64.b64encode(image_bytes).decode("utf-8")
-      image_struct = instance.fields['image'].struct_value
-      image_struct.fields['bytesBase64Encoded'].string_value = encoded_content
+        instance = struct_pb2.Struct()
+        if text:
+            instance.fields["text"].string_value = text
 
-    instances = [instance]
-    endpoint = (f"projects/{self.project}/locations/{self.location}"
-      "/publishers/google/models/multimodalembedding@001")
-    print(f"Calling Vertex AI  : {endpoint}")
+        if image_bytes:
+            encoded_content = base64.b64encode(image_bytes).decode("utf-8")
+            image_struct = instance.fields["image"].struct_value
+            image_struct.fields["bytesBase64Encoded"].string_value = encoded_content
 
-    response = self.client.predict(endpoint=endpoint, instances=instances)
-    print(f" Vertex AI  Response : {response}")
+        instances = [instance]
+        endpoint = (
+            f"projects/{self.project}/locations/{self.location}"
+            "/publishers/google/models/multimodalembedding@001"
+        )
+        print(f"Calling Vertex AI  : {endpoint}")
 
-    text_embedding = None
-    if text:    
-      text_emb_value = response.predictions[0]['textEmbedding']
-      text_embedding = [v for v in text_emb_value]
+        response = self.client.predict(endpoint=endpoint, instances=instances)
+        print(f" Vertex AI  Response : {response}")
 
-    image_embedding = None
-    if image_bytes:    
-      image_emb_value = response.predictions[0]['imageEmbedding']
-      image_embedding = [v for v in image_emb_value]
+        text_embedding = None
+        if text:
+            text_emb_value = response.predictions[0]["textEmbedding"]
+            text_embedding = [v for v in text_emb_value]
 
-    return EmbeddingResponse(
-      text_embedding=text_embedding,
-      image_embedding=image_embedding)
+        image_embedding = None
+        if image_bytes:
+            image_emb_value = response.predictions[0]["imageEmbedding"]
+            image_embedding = [v for v in image_emb_value]
+
+        return EmbeddingResponse(
+            text_embedding=text_embedding, image_embedding=image_embedding
+        )
+
 
 print(f"Calling EmbeddingPredictionClient with project {PROJECT_ID}")
 client = EmbeddingPredictionClient(project=PROJECT_ID)
 print(f"EmbeddingPredictionClient returned : {client}")
+
 
 @st.cache_resource
 def load_models() -> tuple[GenerativeModel, GenerativeModel]:
     """Load Gemini 1.5 Flash and Pro models."""
     return GenerativeModel("gemini-1.5-flash"), GenerativeModel("gemini-1.5-pro")
 
+
 gemini_15_flash, gemini_15_pro = load_models()
 print(f"Models loaded: {gemini_15_flash}")
+
 
 def get_gemini_response(
     model: GenerativeModel,
@@ -167,160 +168,122 @@ def generate_story(text_gen_prompt: str) -> str:
 
     temperature = 0.30
     max_output_tokens = 100
-    
+
     config = GenerationConfig(
-    temperature=temperature, max_output_tokens=max_output_tokens
+        temperature=temperature, max_output_tokens=max_output_tokens
     )
 
-    response =  get_gemini_response(
-    gemini_15_flash,  # Use the selected model
-    text_gen_prompt,
-    generation_config=config,
+    response = get_gemini_response(
+        gemini_15_flash,  # Use the selected model
+        text_gen_prompt,
+        generation_config=config,
     )
     print(f"received gemini response: {response}")
 
     return response
+
 
 def generate_image_classification(images_content) -> str:
     print(f"calling gemini response: {gemini_15_flash}")
 
     temperature = 0.30
     max_output_tokens = 2048
-    
+
     config = GenerationConfig(
-    temperature=temperature, max_output_tokens=max_output_tokens
+        temperature=temperature, max_output_tokens=max_output_tokens
     )
 
-    response =  get_gemini_response(
-    gemini_15_flash,  # Use the selected model
-    images_content,
-    generation_config=config,
+    response = get_gemini_response(
+        gemini_15_flash,  # Use the selected model
+        images_content,
+        generation_config=config,
     )
     print(f"received gemini response: {response}")
 
     return response
 
-
-def search_vector_db(image_bytes,text_search):
-  model = MultiModalEmbeddingModel.from_pretrained("multimodalembedding@001")
-  text_embedding_model = TextEmbeddingModel.from_pretrained("textembedding-gecko")
-
-  # embedding_dimension = 128
-  #  converted_query_to_embedding = client.get_embedding(image_bytes=image_bytes)
-  # Set variables for the current deployed index.
-  API_ENDPOINT="875183697.us-central1-104454103637.vdb.vertexai.goog"
-  INDEX_ENDPOINT="projects/104454103637/locations/us-central1/indexEndpoints/340703469075693568"
-  DEPLOYED_INDEX_ID="games_demo_deployed_index_1730123541168"
-
-  image = Image.load_from_file(
-    "gs://bagchi-genai-bb/input_images/car-front.png"
-    )
-  embeddings = model.get_embeddings(
-    image=image,
-    contextual_text=text_search,
-  )
-  print(f"Image Embedding: {embeddings}")
-   # Configure Matching Engine Index Client
-  client_options = {
-        "api_endpoint": API_ENDPOINT
-    }
-  my_index_endpoint_id = "340703469075693568"  # @param {type:"string"}
-  my_index_endpoint = aiplatform.MatchingEngineIndexEndpoint(my_index_endpoint_id)
-  print(f"my_index_endpoint: {my_index_endpoint}")
-
-
-  # text_embeddings = text_embedding_model.get_embeddings([text_search])
-  # vector = text_embeddings[0].values
-  # print(f"Text Vector: {text_embeddings[0].values}")
-
-  # run query
-  print(f"run query: my_index_endpoint")
-
-  response = my_index_endpoint.find_neighbors(
-      deployed_index_id=DEPLOYED_INDEX_ID, queries=[embeddings.image_embedding], num_neighbors=10
-  )
-  print(f"Query Response {response}")
-
 @st.cache_resource
 def get_warehouse_client():
-  warehouse_endpoint = channel.get_warehouse_service_endpoint(channel.Environment['PROD'])
-  warehouse_client = visionai_v1.WarehouseClient(
-    client_options={"api_endpoint": warehouse_endpoint}
-  )
-  return warehouse_client
-
-@st.cache_resource
-def get_storage_bucket():
-  print(f"storage_client called : {PROJECT_ID}")
-  storage_client = storage.Client(project=PROJECT_ID)
-  bucket = storage_client.get_bucket(BUCKET)
-  print(f"storage_client returned : {bucket}")
-  return bucket
-
-get_storage_bucket()
-
-def search_image_warehouse(uploaded_file : bytes,text_query : str) -> list:
-  wh_client = get_warehouse_client()
-  MAX_RESULTS = 10  # @param {type: "integer"} Set to 0 to allow all results.
-  QUERY = text_query  # @param {type: "string"}
-  endpoint_name="projects/104454103637/locations/us-central1/indexEndpoints/games-search-endpoint-demo"
-  print(f"calling endpoint {endpoint_name}")
-  print(f"Image Query {uploaded_file}")
-  if text_query != "" :
-    results = wh_client.search_index_endpoint(
-      visionai_v1.SearchIndexEndpointRequest(
-          index_endpoint=endpoint_name,
-          text_query=QUERY, 
-      ),
+    warehouse_endpoint = channel.get_warehouse_service_endpoint(
+        channel.Environment["PROD"]
     )
-  else:
-    print(f"Calling Image Query {uploaded_file}")
-    with open("search_image", "wb") as f:
-      f.write(uploaded_file.getbuffer())
-    with open("search_image", "rb") as localfile:
-      image_content = localfile.read()
-    print(f"Calling Image Endpoint {image_content}")
-
-    results = wh_client.search_index_endpoint(
-      visionai_v1.SearchIndexEndpointRequest(
-          index_endpoint=endpoint_name,
-          image_query=visionai_v1.ImageQuery(
-              input_image=image_content,
-          ),
-      ),
+    warehouse_client = visionai_v1.WarehouseClient(
+        client_options={"api_endpoint": warehouse_endpoint}
     )
-    # print(f"Called Image Query {results}")
+    return warehouse_client
 
-  print(f"received respnse {results}")
 
-  results_cnt = 0   
-  asset_names = []
-  asset_relevances =[]
-  for r in results:
-      if float(r.relevance) > 0.4:
-        asset_names.append(r.asset)
-        asset_relevances.append(r.relevance)
-        results_cnt += 1
-      if results_cnt >= MAX_RESULTS:
-        break
+# @st.cache_resource
+# def get_storage_bucket():
+#   print(f"storage_client called : {PROJECT_ID}")
+#   storage_client = storage.Client(project=PROJECT_ID)
+#   bucket = storage_client.get_bucket(BUCKET)
+#   print(f"storage_client returned : {bucket}")
+#   return bucket
 
-  # Sort asset_names based on asset_relevances in descending order
-  sorted_data = sorted(zip(asset_relevances, asset_names), reverse=True)
-  asset_names = [asset for _, asset in sorted_data]   
-  # print(f"sorted respnse {asset_names}")
+# get_storage_bucket()
 
-  uris = list(
-      map(
-          lambda asset_name: wh_client.generate_retrieval_url(
-              visionai_v1.GenerateRetrievalUrlRequest(
-                  name=asset_name,
-              )
-          ).signed_uri,
-          asset_names,
-      )
-  )
-  print(f"Images URIS size {len(uris)}")
 
-  return uris
+def search_image_warehouse(uploaded_file: bytes, text_query: str,search_by_image : bool) -> list:
+    wh_client = get_warehouse_client()
+    MAX_RESULTS = 10  # @param {type: "integer"} Set to 0 to allow all results.
+    QUERY = text_query  # @param {type: "string"}
+    endpoint_name = "projects/104454103637/locations/us-central1/indexEndpoints/games-search-endpoint-demo"
+    print(f"calling endpoint {endpoint_name}")
+    print(f"Image Query {uploaded_file}")
+    if search_by_image == False:
+        results = wh_client.search_index_endpoint(
+            visionai_v1.SearchIndexEndpointRequest(
+                index_endpoint=endpoint_name,
+                text_query=QUERY,
+            ),
+        )
+    else:
+        print(f"Calling Image Query {uploaded_file}")
+        with open("search_image", "wb") as f:
+            f.write(uploaded_file.getbuffer())
+        with open("search_image", "rb") as localfile:
+            image_content = localfile.read()
+        print(f"Calling Image Endpoint {image_content}")
 
-  
+        results = wh_client.search_index_endpoint(
+            visionai_v1.SearchIndexEndpointRequest(
+                index_endpoint=endpoint_name,
+                image_query=visionai_v1.ImageQuery(
+                    input_image=image_content,
+                ),
+            ),
+        )
+        # print(f"Called Image Query {results}")
+
+    print(f"received respnse {results}")
+
+    results_cnt = 0
+    asset_names = []
+    asset_relevances = []
+    for r in results:
+        if float(r.relevance) > 0.4:
+            asset_names.append(r.asset)
+            asset_relevances.append(r.relevance)
+            results_cnt += 1
+        if results_cnt >= MAX_RESULTS:
+            break
+
+    # Sort asset_names based on asset_relevances in descending order
+    sorted_data = sorted(zip(asset_relevances, asset_names), reverse=True)
+    asset_names = [asset for _, asset in sorted_data]
+    # print(f"sorted respnse {asset_names}")
+
+    uris = list(
+        map(
+            lambda asset_name: wh_client.generate_retrieval_url(
+                visionai_v1.GenerateRetrievalUrlRequest(
+                    name=asset_name,
+                )
+            ).signed_uri,
+            asset_names,
+        )
+    )
+    print(f"Images URIS size {len(uris)}")
+
+    return uris
