@@ -29,6 +29,16 @@ st.set_page_config(
     initial_sidebar_state="expanded",
 )
 
+PROJECT_ID = "bagchi-genai-bb"
+LOCATION = "us-central1"
+BUCKET = "bagchi-genai-bb"
+BUCKET_URI = f"gs://{BUCKET}/"
+
+print(f"vertexai.init called : {PROJECT_ID}")
+
+vertexai.init(project=PROJECT_ID, location=LOCATION)
+print(f"Using vertexai version: {vertexai.__version__}")
+
 
 st.logo("images/investments.png")
 

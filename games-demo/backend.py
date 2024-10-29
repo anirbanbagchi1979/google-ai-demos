@@ -27,17 +27,26 @@ import base64
 from google.cloud import storage
 from google.protobuf import struct_pb2
 import typing
-
+import requests
 import google.cloud.aiplatform as aiplatform
 import google.cloud.aiplatform_v1beta1 as aiplatform_v1beta1
-PROJECT_ID = os.environ.get("bagchi-genai-bb")
-LOCATION = os.environ.get("us_central1")
+
+from visionai.python.gapic.visionai import visionai_v1
+from visionai.python.net import channel
+
+PROJECT_ID = "bagchi-genai-bb"
+LOCATION = "us-central1"
 BUCKET = "bagchi-genai-bb"
 BUCKET_URI = f"gs://{BUCKET}/"
 
-vertexai.init(project=PROJECT_ID, location=LOCATION)
-print(f"Using vertexai version: {vertexai.__version__}")
 
+@st.cache_resource
+def get_vertexai_session():
+  print(f"vertexai.init called : {PROJECT_ID}")
+  vertexai.init(project=PROJECT_ID, location=LOCATION)
+  print(f"Using vertexai version: {vertexai.__version__}")
+
+get_vertexai_session()  
 
 class EmbeddingResponse(typing.NamedTuple):
   text_embedding: typing.Sequence[float]
@@ -53,8 +62,8 @@ class EmbeddingPredictionClient:
     # Initialize client that will be used to create and send requests.
     # This client only needs to be created once, and can be reused for multiple requests.
     self.client = aiplatform.gapic.PredictionServiceClient(client_options=client_options)  
-    self.location = location
-    self.project = "bagchi-genai-bb"
+    self.location = LOCATION
+    self.project = PROJECT_ID
 
   def get_embedding(self, text : str = None, image_bytes : bytes = None):
     if not text and not image_bytes:
@@ -92,13 +101,8 @@ class EmbeddingPredictionClient:
       image_embedding=image_embedding)
 
 print(f"Calling EmbeddingPredictionClient with project {PROJECT_ID}")
-
 client = EmbeddingPredictionClient(project=PROJECT_ID)
-
 print(f"EmbeddingPredictionClient returned : {client}")
-
-# storage_client = storage.Client()
-# bucket = storage_client.get_bucket(BUCKET)
 
 @st.cache_resource
 def load_models() -> tuple[GenerativeModel, GenerativeModel]:
@@ -112,7 +116,7 @@ def get_gemini_response(
     model: GenerativeModel,
     contents: list,
     generation_config: GenerationConfig = GenerationConfig(
-        temperature=0.1, max_output_tokens=2048
+        temperature=0.1, max_output_tokens=200
     ),
     stream: bool = True,
 ) -> str:
@@ -162,7 +166,7 @@ def generate_story(text_gen_prompt: str) -> str:
     print(f"calling gemini response: {gemini_15_flash}")
 
     temperature = 0.30
-    max_output_tokens = 2048
+    max_output_tokens = 100
     
     config = GenerationConfig(
     temperature=temperature, max_output_tokens=max_output_tokens
@@ -197,7 +201,7 @@ def generate_image_classification(images_content) -> str:
     return response
 
 
-def search(image_bytes,text_search):
+def search_vector_db(image_bytes,text_search):
   model = MultiModalEmbeddingModel.from_pretrained("multimodalembedding@001")
   text_embedding_model = TextEmbeddingModel.from_pretrained("textembedding-gecko")
 
@@ -237,3 +241,86 @@ def search(image_bytes,text_search):
   )
   print(f"Query Response {response}")
 
+@st.cache_resource
+def get_warehouse_client():
+  warehouse_endpoint = channel.get_warehouse_service_endpoint(channel.Environment['PROD'])
+  warehouse_client = visionai_v1.WarehouseClient(
+    client_options={"api_endpoint": warehouse_endpoint}
+  )
+  return warehouse_client
+
+@st.cache_resource
+def get_storage_bucket():
+  print(f"storage_client called : {PROJECT_ID}")
+  storage_client = storage.Client(project=PROJECT_ID)
+  bucket = storage_client.get_bucket(BUCKET)
+  print(f"storage_client returned : {bucket}")
+  return bucket
+
+get_storage_bucket()
+
+def search_image_warehouse(uploaded_file : bytes,text_query : str) -> list:
+  wh_client = get_warehouse_client()
+  MAX_RESULTS = 10  # @param {type: "integer"} Set to 0 to allow all results.
+  QUERY = text_query  # @param {type: "string"}
+  endpoint_name="projects/104454103637/locations/us-central1/indexEndpoints/games-search-endpoint-demo"
+  print(f"calling endpoint {endpoint_name}")
+  print(f"Image Query {uploaded_file}")
+  if text_query != "" :
+    results = wh_client.search_index_endpoint(
+      visionai_v1.SearchIndexEndpointRequest(
+          index_endpoint=endpoint_name,
+          text_query=QUERY, 
+      ),
+    )
+  else:
+    print(f"Calling Image Query {uploaded_file}")
+    with open("search_image", "wb") as f:
+      f.write(uploaded_file.getbuffer())
+    with open("search_image", "rb") as localfile:
+      image_content = localfile.read()
+    print(f"Calling Image Endpoint {image_content}")
+
+    results = wh_client.search_index_endpoint(
+      visionai_v1.SearchIndexEndpointRequest(
+          index_endpoint=endpoint_name,
+          image_query=visionai_v1.ImageQuery(
+              input_image=image_content,
+          ),
+      ),
+    )
+    # print(f"Called Image Query {results}")
+
+  print(f"received respnse {results}")
+
+  results_cnt = 0   
+  asset_names = []
+  asset_relevances =[]
+  for r in results:
+      if float(r.relevance) > 0.4:
+        asset_names.append(r.asset)
+        asset_relevances.append(r.relevance)
+        results_cnt += 1
+      if results_cnt >= MAX_RESULTS:
+        break
+
+  # Sort asset_names based on asset_relevances in descending order
+  sorted_data = sorted(zip(asset_relevances, asset_names), reverse=True)
+  asset_names = [asset for _, asset in sorted_data]   
+  # print(f"sorted respnse {asset_names}")
+
+  uris = list(
+      map(
+          lambda asset_name: wh_client.generate_retrieval_url(
+              visionai_v1.GenerateRetrievalUrlRequest(
+                  name=asset_name,
+              )
+          ).signed_uri,
+          asset_names,
+      )
+  )
+  print(f"Images URIS size {len(uris)}")
+
+  return uris
+
+  

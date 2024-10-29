@@ -6,3 +6,4 @@ streamlit-navigation-bar
 streamlit-extras
 streamlit-agraph
 python-dotenv
+google-cloud-vision

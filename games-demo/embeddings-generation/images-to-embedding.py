@@ -62,7 +62,8 @@ def main():
   # Replace with your bucket name and folder name
   bucket_name = "bagchi-genai-bb"
   folder_name = "input_images"
-
+  folder_name = "images_for_testing"
+  
   # Initialize a client
   storage_client = storage.Client()
 
@@ -86,7 +87,7 @@ def main():
           encoded_name = blob.name.encode(encoding = 'UTF-8', errors = 'strict')
           print(f"encoded_name: {encoded_name}")
           # write embedding to indexData.json file
-          with open("indexData.json", "a") as f:
+          with open("indexData_GCS_Images.json", "a") as f:
             f.write('{"id":"' + str(encoded_name) + '",')
             f.write('"embedding":[' + ",".join(str(x) for x in response[1]) + "]}")
             f.write("\n")
