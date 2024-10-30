@@ -24,6 +24,7 @@ PROJECT_ID = "bagchi-genai-bb"
 LOCATION = "us-central1"
 BUCKET = "bagchi-genai-bb"
 BUCKET_URI = f"gs://{BUCKET}/"
+IMAGE_WAREHOUSE_ENDPOINT_NAME = "projects/104454103637/locations/us-central1/indexEndpoints/games-search-endpoint-demo"
 
 
 @st.cache_resource
@@ -213,7 +214,8 @@ def get_warehouse_client():
     )
     return warehouse_client
 
-get_warehouse_client()
+
+wh_client = get_warehouse_client()
 
 # @st.cache_resource
 # def get_storage_bucket():
@@ -229,17 +231,15 @@ get_warehouse_client()
 def search_image_warehouse(
     uploaded_file: bytes, text_query: str, search_by_image: bool
 ) -> list:
-    wh_client = get_warehouse_client()
     MAX_RESULTS = 10  # @param {type: "integer"} Set to 0 to allow all results.
     QUERY = text_query  # @param {type: "string"}
-    endpoint_name = "projects/104454103637/locations/us-central1/indexEndpoints/games-search-endpoint-demo"
     # print(f"calling endpoint {endpoint_name}")
     # print(f"Image Query {uploaded_file}")
     if search_by_image == False:
         print(f"Calling Text Endpoint ")
         results = wh_client.search_index_endpoint(
             visionai_v1.SearchIndexEndpointRequest(
-                index_endpoint=endpoint_name,
+                index_endpoint=IMAGE_WAREHOUSE_ENDPOINT_NAME,
                 text_query=QUERY,
             ),
         )
@@ -253,7 +253,7 @@ def search_image_warehouse(
 
         results = wh_client.search_index_endpoint(
             visionai_v1.SearchIndexEndpointRequest(
-                index_endpoint=endpoint_name,
+                index_endpoint=IMAGE_WAREHOUSE_ENDPOINT_NAME,
                 image_query=visionai_v1.ImageQuery(
                     input_image=image_content,
                 ),
@@ -292,3 +292,20 @@ def search_image_warehouse(
     # print(f"Images URIS size {len(uris)}")
 
     return uris
+
+
+def initialize_backend():
+    get_vertexai_session()
+    # get_storage_url()
+
+    story = generate_story(
+        "Tell me a fancy story with a beauty and a beast within 200 words set in modern times"
+    )
+    # print(f"Loading a story: {story}")
+    results = wh_client.search_index_endpoint(
+        visionai_v1.SearchIndexEndpointRequest(
+            index_endpoint=IMAGE_WAREHOUSE_ENDPOINT_NAME,
+            text_query="an airplane",
+        ),
+    )
+    # print(f"Loading a story: {results}")

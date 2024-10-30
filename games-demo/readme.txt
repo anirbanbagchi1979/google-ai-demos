@@ -5,9 +5,9 @@ python3.9 -m venv .
 gcloud config set project bagchi-genai-bb
 gcloud auth application-default login
 gcloud auth application-default set-quota-project bagchi-genai-bb
-pip install -r requirements.txt
-wget https://github.com/google/visionai/releases/download/v0.0.6/visionai-0.0.6-py3-none-any.whl
+pip3 install -r requirements.txt
 pip3 install visionai-0.0.6-py3-none-any.whl
+wget https://github.com/google/visionai/releases/download/v0.0.6/visionai-0.0.6-py3-none-any.whl
 
 streamlit run home.py \
   --browser.serverAddress=localhost \
