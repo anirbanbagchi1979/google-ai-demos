@@ -32,15 +32,13 @@ def categorize(uploaded_images_list: list) -> None:
             i += 1
 
         st.write("Automatically categorize 3D assets based on multiple views")
-        st.image(
-            [
-                uploaded_images_list[0],
-                uploaded_images_list[1],
-                uploaded_images_list[2],
-                uploaded_images_list[3],
-            ],
-            width=100,
-        )
+        cols = st.columns(8)
+        for i, uploaded_image in enumerate(uploaded_images_list):
+            if i == 5:
+                break
+            with cols[i]:  # Use the context manager for each column
+                st.image(uploaded_image, width=70, use_column_width="auto")
+
         content = [
             """ You are an expert who looks at 3d models and provides details about the category of the assets.
                 can you combine all these images and tell me what category this image belongs to. 
@@ -64,7 +62,7 @@ def categorize(uploaded_images_list: list) -> None:
                     start_time = time.time()
                     response = backend.generate_image_classification(content)
                     end_time = time.time()
-                    formatted_time = f"{end_time-start_time:.3f} seconds"  
+                    formatted_time = f"{end_time-start_time:.3f} seconds"
                     st.json(response)
         with tab2:
             st.write("Prompt used:")

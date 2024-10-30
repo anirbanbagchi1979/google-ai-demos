@@ -6,6 +6,7 @@ from PIL import Image as PILImage
 import backend
 import requests
 
+
 def get_storage_url(gcs_uri: str) -> str:
     """Convert a GCS URI to a storage URL."""
     return "https://storage.googleapis.com/" + gcs_uri.split("gs://")[1]
@@ -16,7 +17,7 @@ def search(image_bytes, text_search, pil_image, search_by_image) -> None:
         st.subheader("AI Powered Asset Search")
         if pil_image != "":
             st.image(pil_image, width=100, caption="Image of the 3D Asset")
-        st.subheader("Matched Assets Loading...")
+        st.subheader("Matched Assets ...")
 
         image_uris = backend.search_image_warehouse(
             image_bytes, text_search, search_by_image
@@ -41,13 +42,17 @@ def search(image_bytes, text_search, pil_image, search_by_image) -> None:
                     ]
                 )
                 # Create columns for the images
-                cols = st.columns(len(image_uris))
+                cols = st.columns(6)
                 response_contents = []
                 # Iterate over the image URIs and display images in each column
+
                 for i, uri in enumerate(image_uris):
+                    if i == 5:
+                        break
                     with cols[i]:  # Use the context manager for each column
                         response = s.get(uri, timeout=1, headers=headers)
-                        st.image(response.content, width=100)
+                        st.image(response.content, width=70, use_column_width="auto")
+
 
 with st.sidebar:
     with st.form("Asset Search"):
@@ -64,13 +69,13 @@ with st.sidebar:
             pil_image = ""
             if image_or_text_search == "Search By Image":
                 pil_image = PILImage.open(uploaded_file)
-                img_array = np.array(pil_image)
-                if pil_image is not None:
-                    st.image(
-                        pil_image,
-                        caption=f"You amazing image has shape {img_array.shape[0:2]}",
-                        use_column_width=True,
-                    )
+                # img_array = np.array(pil_image)
+                # if pil_image is not None:
+                #     st.image(
+                #         pil_image,
+                #         caption=f"You amazing image has shape {img_array.shape[0:2]}",
+                #         use_column_width=True,
+                #     )
                 # image_file_contents =img_search_file_buffer.read()
 
 if image_search_btn:

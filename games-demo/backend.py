@@ -213,6 +213,7 @@ def get_warehouse_client():
     )
     return warehouse_client
 
+get_warehouse_client()
 
 # @st.cache_resource
 # def get_storage_bucket():
