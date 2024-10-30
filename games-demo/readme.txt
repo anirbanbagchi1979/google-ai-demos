@@ -15,10 +15,13 @@ streamlit run home.py \
   --server.enableXsrfProtection=false \
   --server.port 8080
 
+COPY visionai-0.0.6-py3-none-any.whl . 
+RUN pip install visionai-0.0.6-py3-none-any.whl
+
 
 
 gcloud builds submit --tag gcr.io/bagchi-genai-bb/gaming-3d-assset
-gcloud run deploy finance-advisor-app --image gcr.io/bagchi-genai-bb/gaming-3d-assset --platform managed  --allow-unauthenticated  --region us-central1
+gcloud run deploy gaming-assistant-app --image gcr.io/bagchi-genai-bb/gaming-3d-assset --platform managed  --allow-unauthenticated  --region us-central1
 
 sudo ls -l /usr/local/bin | grep '../Library/Frameworks/Python*' | awk '{print $9}' | tr -d @ | xargs rm -f
 

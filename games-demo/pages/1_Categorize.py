@@ -9,23 +9,18 @@ from vertexai.generative_models import (
     Image,
 )
 
-st.set_page_config(
-    layout="wide",
-    page_title="Gaming Assets Assistant",
-    page_icon="images/small-logo.png",
-    initial_sidebar_state="expanded",
-)
-
-
-def get_storage_url(gcs_uri: str) -> str:
-    """Convert a GCS URI to a storage URL."""
-    return "https://storage.googleapis.com/" + gcs_uri.split("gs://")[1]
+# st.set_page_config(
+#     layout="wide",
+#     page_title="Gaming Assets Assistant",
+#     page_icon="images/small-logo.png",
+#     initial_sidebar_state="expanded",
+# )
 
 
 def categorize(uploaded_images_list: list) -> None:
     with st.spinner("Generating Content..."):
-        st.header("Gaming Assets Assistant")
-        st.subheader("Automated Asset Categorization")
+        # st.header("Gaming Assets Assistant")
+        st.subheader("AI Powered Asset Categorization")
         i = 0
         asset_image_list = []
         for image_name in uploaded_images_list:
@@ -62,16 +57,14 @@ def categorize(uploaded_images_list: list) -> None:
             ".",
         ]
 
-        tab1, tab2, tab3 = st.tabs(["Response", "Prompt","Timing"])
+        tab1, tab2, tab3 = st.tabs(["Response", "Prompt", "Timing"])
         with tab1:
             if content:
                 with st.spinner("Generating Asset Info..."):
                     start_time = time.time()
                     response = backend.generate_image_classification(content)
                     end_time = time.time()
-                    formatted_time = (
-                        f"{end_time-start_time:.3f}"  # f-string for formatted output
-                    )
+                    formatted_time = f"{end_time-start_time:.3f} seconds"  
                     st.json(response)
         with tab2:
             st.write("Prompt used:")
@@ -96,7 +89,7 @@ with st.sidebar:
                 st.write("filename:", uploaded_file.name)
                 # st.write(bytes_data)
                 image = PILImage.open(uploaded_file)
-                img_array = np.array(image)
+                # img_array = np.array(image)
                 # if image is not None:
                 #     st.image(
                 #         image,
@@ -108,4 +101,4 @@ with st.sidebar:
 if image_classify_btn:
     categorize(uploaded_images_list)
 
-st.logo("images/investments.png")
+st.logo("images/top-logo-1.png")

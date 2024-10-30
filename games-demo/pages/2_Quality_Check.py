@@ -8,15 +8,6 @@ from vertexai.generative_models import (
 )
 import backend as model
 
-favicon = "images/small-logo.png"
-st.set_page_config(
-    layout="wide",
-    page_title="Gaming Assets Assistant",
-    page_icon=favicon,
-    initial_sidebar_state="expanded",
-)
-
-
 def get_storage_url(gcs_uri: str) -> str:
     """Convert a GCS URI to a storage URL."""
     return "https://storage.googleapis.com/" + gcs_uri.split("gs://")[1]
@@ -24,8 +15,7 @@ def get_storage_url(gcs_uri: str) -> str:
 
 def quality_check(image) -> None:
     with st.spinner("Generating Content..."):
-        st.header("Gaming Assets Assistant")
-        st.subheader("Generate Automated Asset Quality Report")
+        st.subheader("AI Powered Asset Quality Report")
         image.save("images/model_image.png")
         # asset_image = Part.from_image(Image.load_from_file("images/model_house_incomplete.png"))
         asset_image = Part.from_image(Image.load_from_file("images/model_image.png"))
@@ -77,15 +67,15 @@ with st.sidebar:
         image_classify_btn = st.form_submit_button("Check Quality")
         if image_classify_btn:
             image = PILImage.open(img_file_buffer)
-            img_array = np.array(image)
-            if image is not None:
-                st.image(
-                    image,
-                    caption=f"You amazing image has shape {img_array.shape[0:2]}",
-                    use_column_width=True,
-                )
+            # img_array = np.array(image)
+            # if image is not None:
+            #     st.image(
+            #         image,
+            #         caption=f"You amazing image has shape {img_array.shape[0:2]}",
+            #         use_column_width=True,
+            #     )
 
 if image_classify_btn:
     quality_check(image)
 
-st.logo("images/investments.png")
+st.logo("images/top-logo-1.png")

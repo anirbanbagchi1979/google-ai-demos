@@ -1,19 +1,10 @@
 import time as time
+from collections import OrderedDict
 import streamlit as st
 import numpy as np
 from PIL import Image as PILImage
 import backend
 import requests
-from collections import OrderedDict
-
-favicon = "images/small-logo.png"
-st.set_page_config(
-    layout="wide",
-    page_title="Gaming Assets Assistant",
-    page_icon=favicon,
-    initial_sidebar_state="expanded",
-)
-
 
 def get_storage_url(gcs_uri: str) -> str:
     """Convert a GCS URI to a storage URL."""
@@ -22,8 +13,7 @@ def get_storage_url(gcs_uri: str) -> str:
 
 def search(image_bytes, text_search, pil_image, search_by_image) -> None:
     with st.spinner("Performing Image Search..."):
-        st.header("Gaming Assets Assistant")
-        st.subheader("Search for matching assets")
+        st.subheader("AI Powered Asset Search")
         if pil_image != "":
             st.image(pil_image, width=100, caption="Image of the 3D Asset")
         st.subheader("Matched Assets Loading...")
@@ -90,4 +80,4 @@ if image_search_btn:
 
     search(uploaded_file, text_search, pil_image, search_by_image)
 
-st.logo("images/investments.png")
+st.logo("images/top-logo-1.png")

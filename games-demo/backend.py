@@ -98,9 +98,9 @@ class EmbeddingPredictionClient:
         )
 
 
-print(f"Calling EmbeddingPredictionClient with project {PROJECT_ID}")
-client = EmbeddingPredictionClient(project=PROJECT_ID)
-print(f"EmbeddingPredictionClient returned : {client}")
+# print(f"Calling EmbeddingPredictionClient with project {PROJECT_ID}")
+# # client = EmbeddingPredictionClient(project=PROJECT_ID)
+# print(f"EmbeddingPredictionClient returned : {client}")
 
 
 @st.cache_resource
@@ -117,7 +117,7 @@ def get_gemini_response(
     model: GenerativeModel,
     contents: list,
     generation_config: GenerationConfig = GenerationConfig(
-        temperature=0.1, max_output_tokens=200
+        temperature=0.1, max_output_tokens=2048
     ),
     stream: bool = True,
 ) -> str:
@@ -167,7 +167,7 @@ def generate_story(text_gen_prompt: str) -> str:
     print(f"calling gemini response: {gemini_15_flash}")
 
     temperature = 0.30
-    max_output_tokens = 100
+    max_output_tokens = 2048
 
     config = GenerationConfig(
         temperature=temperature, max_output_tokens=max_output_tokens
@@ -184,7 +184,7 @@ def generate_story(text_gen_prompt: str) -> str:
 
 
 def generate_image_classification(images_content) -> str:
-    print(f"calling gemini response: {gemini_15_flash}")
+    # print(f"calling gemini response: {gemini_15_flash}")
 
     temperature = 0.30
     max_output_tokens = 2048
@@ -198,9 +198,10 @@ def generate_image_classification(images_content) -> str:
         images_content,
         generation_config=config,
     )
-    print(f"received gemini response: {response}")
+    # print(f"received gemini response: {response}")
 
     return response
+
 
 @st.cache_resource
 def get_warehouse_client():
@@ -224,14 +225,17 @@ def get_warehouse_client():
 # get_storage_bucket()
 
 
-def search_image_warehouse(uploaded_file: bytes, text_query: str,search_by_image : bool) -> list:
+def search_image_warehouse(
+    uploaded_file: bytes, text_query: str, search_by_image: bool
+) -> list:
     wh_client = get_warehouse_client()
     MAX_RESULTS = 10  # @param {type: "integer"} Set to 0 to allow all results.
     QUERY = text_query  # @param {type: "string"}
     endpoint_name = "projects/104454103637/locations/us-central1/indexEndpoints/games-search-endpoint-demo"
-    print(f"calling endpoint {endpoint_name}")
-    print(f"Image Query {uploaded_file}")
+    # print(f"calling endpoint {endpoint_name}")
+    # print(f"Image Query {uploaded_file}")
     if search_by_image == False:
+        print(f"Calling Text Endpoint ")
         results = wh_client.search_index_endpoint(
             visionai_v1.SearchIndexEndpointRequest(
                 index_endpoint=endpoint_name,
@@ -239,12 +243,12 @@ def search_image_warehouse(uploaded_file: bytes, text_query: str,search_by_image
             ),
         )
     else:
-        print(f"Calling Image Query {uploaded_file}")
+        # print(f"Calling Image Query {uploaded_file}")
         with open("search_image", "wb") as f:
             f.write(uploaded_file.getbuffer())
         with open("search_image", "rb") as localfile:
             image_content = localfile.read()
-        print(f"Calling Image Endpoint {image_content}")
+        print(f"Calling Image Endpoint ")
 
         results = wh_client.search_index_endpoint(
             visionai_v1.SearchIndexEndpointRequest(
@@ -256,7 +260,7 @@ def search_image_warehouse(uploaded_file: bytes, text_query: str,search_by_image
         )
         # print(f"Called Image Query {results}")
 
-    print(f"received respnse {results}")
+    # print(f"received respnse {results}")
 
     results_cnt = 0
     asset_names = []
@@ -284,6 +288,6 @@ def search_image_warehouse(uploaded_file: bytes, text_query: str,search_by_image
             asset_names,
         )
     )
-    print(f"Images URIS size {len(uris)}")
+    # print(f"Images URIS size {len(uris)}")
 
     return uris

@@ -13,6 +13,6 @@ st.set_page_config(
 
 st.logo("images/top-logo-1.png")
 
-st.header("Welcome")
-
+st.header("Cymbal Games")
+st.subheader("Game Developers AI Powered Assistant")
 st.image("images/gamedev-assistant-logo.png")

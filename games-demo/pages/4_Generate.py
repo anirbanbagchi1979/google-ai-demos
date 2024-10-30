@@ -16,17 +16,18 @@ def generate() -> None:
         text_story = backend.generate_story(text_gen_prompt)
         end_time = time.time()
         formatted_time = f"{end_time-start_time:.3f}"  # f-string for formatted output
+        
+        st.subheader("AI Powered Story Generator")
         with st.expander("Timing"):
-            # with stylable_container(
-            #     "codeblock",
-            #     """
-            # code {
-            #     white-space: pre-wrap !important;
-            # }
-            # """,
-            # ):
-            st.text(f"The Query took {formatted_time} seconds to complete.")
-
+                # with stylable_container(
+                #     "codeblock",
+                #     """
+                # code {
+                #     white-space: pre-wrap !important;
+                # }
+                # """,
+                # ):
+                st.text(f"The Query took {formatted_time} seconds to complete.")
         st.write(text_story)
 
 
@@ -45,4 +46,4 @@ with st.sidebar:
 
 if time_to_generate:
     generate()
-st.logo("images/investments.png")
+st.logo("images/top-logo-1.png")
