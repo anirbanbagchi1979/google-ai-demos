@@ -13,7 +13,7 @@ import backend
 def generate() -> None:
     with st.spinner("Generating Content..."):
         start_time = time.time()
-        text_story = backend.generate_story(text_gen_prompt)
+        text_story = backend.generate_story(text_gen_prompt,None)
         end_time = time.time()
         formatted_time = f"{end_time-start_time:.3f}"  # f-string for formatted output
         
