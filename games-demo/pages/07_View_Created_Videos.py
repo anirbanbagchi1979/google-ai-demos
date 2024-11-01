@@ -26,11 +26,17 @@ def download_video_as_bytes(blob_name):
 st.title("Google Cloud Storage Video Player")
 
 # Get a list of video files in the bucket
-blobs = list(bucket.list_blobs(prefix="veo-output/")) # Assuming videos are stored in a 'videos/' folder
-video_files = [blob.name for blob in blobs if blob.name.endswith(('.mp4', '.mov', '.avi'))]
+blobs = list(bucket.list_blobs(prefix="veo-output/")) 
+video_files = [(blob.name, blob.updated) for blob in blobs if blob.name.endswith(('.mp4', '.mov', '.avi'))]
+
+# Sort video files by updated timestamp (newest first)
+video_files.sort(key=lambda item: item[1], reverse=True)
+
+# Extract just the filenames for the selectbox
+video_filenames = [item[0] for item in video_files]
 
 # Select box to choose a video
-selected_video = st.selectbox("Select a video:", video_files)
+selected_video = st.selectbox("Select a video:", video_filenames)
 
 if selected_video:
   try:

@@ -9,12 +9,13 @@ from vertexai.generative_models import (
 import json
 import backend as model
 
+
 def get_storage_url(gcs_uri: str) -> str:
     """Convert a GCS URI to a storage URL."""
     return "https://storage.googleapis.com/" + gcs_uri.split("gs://")[1]
 
 
-def generate_videos(image,original_prompt) -> None:
+def generate_videos(image, original_prompt) -> None:
     with st.spinner("Generating Content..."):
         st.subheader("AI Powered Image to Video Generator")
         # if imaimage.save("images/model_image.png")
@@ -71,8 +72,8 @@ def generate_videos(image,original_prompt) -> None:
             - Example text-to-video prompt: "Silhouette of a man walking in collage of cityscapes Glitch camera effect, close up of woman’s face speaking, neon colors"
             </text-to-video-prompt-guide>
             """
-        
-        prompt_to_gemini =             f"""Rewrite the following "original prompt" using the text-to-video instructions below.
+
+        prompt_to_gemini = f"""Rewrite the following "original prompt" using the text-to-video instructions below.
             You want the video to be creative and artistic..
 
             Original Prompt:
@@ -91,31 +92,31 @@ def generate_videos(image,original_prompt) -> None:
             """
         response_schema = {
             "type": "object",
-            "required": [
-                "text-to-video-prompt"
-            ],
-            "properties": {
-                "text-to-video-prompt": {
-                "type": "string"
-                }
-            }
-            }
-        print (f"Prompt to gemini : {prompt_to_gemini}")
-        tab1, tab2, tab3, tab4 = st.tabs(["Response", "Prompt", "Timing", "Video Generate"])
+            "required": ["text-to-video-prompt"],
+            "properties": {"text-to-video-prompt": {"type": "string"}},
+        }
+        # print(f"Prompt to gemini : {prompt_to_gemini}")
+        st.image(image)
+        tab1, tab2, tab3, tab4 = st.tabs(
+            ["Response", "Prompt", "Timing", "Video Generate"]
+        )
         with tab1:
             if prompt_to_gemini:
                 with st.spinner("Generating Better Prompt..."):
                     start_time = time.time()
-                    response = model.generate_story(prompt_to_gemini,response_schema = response_schema)
+                    response = model.generate_story(
+                        prompt_to_gemini, response_schema=response_schema
+                    )
                     end_time = time.time()
                     formatted_time = f"{end_time-start_time:.3f} seconds"  # f-string for formatted output
-
                     st.write(response)
                     refined_prompt_dict = json.loads(response)
-                    print(refined_prompt_dict)
-                    model.generate_video(image,refined_prompt_dict[" text-to-video-prompt"])
-                    
-
+                    # print(refined_prompt_dict)
+                with st.spinner("Generating Video ..."):
+                    filename = model.generate_video(
+                        image, refined_prompt_dict[" text-to-video-prompt"]
+                    )
+                    st.write(f"Video File Created  : {filename}")
 
         with tab2:
             st.write("Prompt used:")
@@ -127,21 +128,24 @@ def generate_videos(image,original_prompt) -> None:
 
 with st.sidebar:
     with st.form("Generate Video"):
-        # img_file_buffer = st.file_uploader("Upload a starting image", type=["png", "jpg", "jpeg"])
-        input_prompt = st.text_area("Describe what you want from the video?", value="Make a 3d spinning video out of this image. The video should do full 2 spins of the image. also can you make the background of the video to have a desert look. Can you add audio of a upbeat music which makes it appeling to show the car ")
+        img_file_buffer = st.file_uploader("Upload a starting image", type=["png", "jpg", "jpeg"])
+        input_prompt = st.text_area(
+            "Describe what you want from the video?",
+            value="Make a 3d spinning video out of this input image. ",
+        )
 
         generate_video_btn = st.form_submit_button("Generate Video")
-        # if generate_video_btn:
-        #     image = PILImage.open(img_file_buffer)
-            # img_array = np.array(image)
-            # if image is not None:
-            #     st.image(
-            #         image,
-            #         caption=f"You amazing image has shape {img_array.shape[0:2]}",
-            #         use_column_width=True,
-            #     )
+        if generate_video_btn:
+            image = PILImage.open(img_file_buffer)
+        # img_array = np.array(image)
+        # if image is not None:
+        #     st.image(
+        #         image,
+        #         caption=f"You amazing image has shape {img_array.shape[0:2]}",
+        #         use_column_width=True,
+        #     )
 
 if generate_video_btn:
-    generate_videos(None,input_prompt)
+    generate_videos(image, input_prompt)
 
 st.logo("images/top-logo-1.png")

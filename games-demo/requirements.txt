@@ -8,3 +8,4 @@ streamlit-agraph
 python-dotenv
 google-cloud-vision
 langchain
+openai
