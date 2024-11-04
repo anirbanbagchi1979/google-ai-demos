@@ -96,7 +96,7 @@ def generate_videos(image, original_prompt) -> None:
             "properties": {"text-to-video-prompt": {"type": "string"}},
         }
         # print(f"Prompt to gemini : {prompt_to_gemini}")
-        st.image(image)
+        st.image(image, width=200)
         tab1, tab2, tab3, tab4 = st.tabs(
             ["Response", "Prompt", "Timing", "Video Generate"]
         )
